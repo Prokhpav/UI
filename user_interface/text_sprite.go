@@ -11,15 +11,15 @@ var (
 	DefaultTextColor = pixel.RGBA{A: 1}
 )
 
-func GetTextSprite(pos pixel.Vec, txt string, font *text.Atlas, color pixel.RGBA) *TextSprite {
+func (g getter) TextSprite(pos pixel.Vec, txt string, font *text.Atlas, color pixel.RGBA) *TextSprite {
 	T := &TextSprite{Pos: pos, Text: txt, font: font, Sprite: text.New(pixel.V(0, 0), font)}
 	T.Sprite.Color = color
 	T.SetText(txt)
 	return T
 }
 
-func GetDefaultText(txt string) *TextSprite {
-	return GetTextSprite(DefaultPos, txt, DefaultFont, DefaultTextColor)
+func (g getter) DefaultText(txt string) *TextSprite {
+	return g.TextSprite(DefaultPos, txt, DefaultFont, DefaultTextColor)
 }
 
 type TextSprite struct {

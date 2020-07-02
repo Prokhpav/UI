@@ -1,0 +1,4 @@
+default: 0, 0, 40, 40
+focused: 40, 0, 80, 40
+touched: 80, 0, 120, 40
+dragged: 120, 0, 160, 40

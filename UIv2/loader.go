@@ -1,4 +1,4 @@
-package user_interface
+package UIv2
 
 import (
 	"github.com/faiface/pixel"
@@ -6,12 +6,17 @@ import (
 	"github.com/golang/freetype/truetype"
 	"golang.org/x/image/font"
 	"image"
+	_ "image/png"
 	"io/ioutil"
 	"os"
 	"strings"
 )
 
-func GetFileName(name string) string {
+type loader struct{}
+
+var Load = loader{}
+
+func (L loader) getFileName(name string) string {
 	dot := len(name) - 1
 	for dot >= 0 && name[dot] != '.' {
 		dot--
@@ -23,20 +28,19 @@ func GetFileName(name string) string {
 	return name[slh+1 : dot]
 }
 
-func CloseFile(file *os.File) {
+func (L loader) closeFile(file *os.File) {
 	err := file.Close()
 	if err != nil {
 		panic(err)
 	}
 }
 
-func loadPicture(path string) (pixel.Picture, error) {
+func (L loader) picture(path string) (pixel.Picture, error) {
 	file, err := os.Open(path)
 	if err != nil {
 		return nil, err
 	}
-	defer CloseFile(file)
-
+	defer L.closeFile(file)
 	img, _, err := image.Decode(file)
 	if err != nil {
 		return nil, err
@@ -44,25 +48,25 @@ func loadPicture(path string) (pixel.Picture, error) {
 	return pixel.PictureDataFromImage(img), nil
 }
 
-//func Sprite(path string) {
-//	pic, err := loadPicture(path)
-//	if err != nil {
-//		panic(err)
-//	}
-//	sprite := pixel.NewSprite(pic, pic.Bounds())
-//	name := getFileName(path)
-//	if _, ok := Sprites[name]; ok {
-//		name = path
-//	}
-//	Sprites[name] = sprite
-//}
+func (L loader) Sprite(path string) {
+	pic, err := L.picture(path)
+	if err != nil {
+		panic(err)
+	}
+	sprite := pixel.NewSprite(pic, pic.Bounds())
+	name := L.getFileName(path)
+	if _, ok := Sprites[name]; ok {
+		name = path
+	}
+	Sprites[name] = sprite
+}
 
-func loadTTF(path string, size float64) (font.Face, error) {
+func (L loader) ttf(path string, size float64) (font.Face, error) {
 	file, err := os.Open(path)
 	if err != nil {
 		return nil, err
 	}
-	defer CloseFile(file)
+	defer L.closeFile(file)
 
 	bytes, err := ioutil.ReadAll(file)
 	if err != nil {
@@ -80,20 +84,20 @@ func loadTTF(path string, size float64) (font.Face, error) {
 	}), nil
 }
 
-func LoadFont(path string, size float64) {
-	face, err := loadTTF(path, size)
+func (L loader) Font(path string, size float64) {
+	face, err := L.ttf(path, size)
 	if err != nil {
 		panic(err)
 	}
 
-	name := GetFileName(path)
+	name := L.getFileName(path)
 	if _, ok := Fonts[name]; !ok {
 		Fonts[name] = map[float64]*text.Atlas{}
 	}
 	Fonts[name][size] = text.NewAtlas(face, text.ASCII)
 }
 
-func LoadAllSprites(directoryPath string) {
+func (L loader) AllSprites(directoryPath string) {
 	files, err := ioutil.ReadDir(directoryPath)
 	if err != nil {
 		panic(err)
@@ -101,14 +105,14 @@ func LoadAllSprites(directoryPath string) {
 	for _, file := range files {
 		filePath := directoryPath + "/" + file.Name()
 		if file.IsDir() {
-			LoadAllSprites(filePath)
+			L.AllSprites(filePath)
 		} else if strings.HasSuffix(filePath, ".png") {
-			LoadComposeSprite(filePath)
+			L.ComposeSprite(filePath)
 		}
 	}
 }
 
-func LoadAllFonts(directoryPath string, size float64) {
+func (L loader) AllFonts(directoryPath string, size float64) {
 	files, err := ioutil.ReadDir(directoryPath)
 	if err != nil {
 		panic(err)
@@ -116,15 +120,15 @@ func LoadAllFonts(directoryPath string, size float64) {
 	for _, file := range files {
 		filePath := directoryPath + "/" + file.Name()
 		if file.IsDir() {
-			LoadAllFonts(filePath, size)
+			L.AllFonts(filePath, size)
 		} else {
-			LoadFont(filePath, size)
+			L.Font(filePath, size)
 		}
 	}
 }
 
-func LoadComposeSprite(path string) {
-	pic, err := loadPicture(path)
+func (L loader) ComposeSprite(path string) {
+	pic, err := L.picture(path)
 	if err != nil {
 		panic(err)
 	}
@@ -137,7 +141,7 @@ func LoadComposeSprite(path string) {
 	infoStr, err := ioutil.ReadFile(infoPath)
 	if err != nil { // sprite is not composed
 		sprite := pixel.NewSprite(pic, pic.Bounds())
-		name := GetFileName(path)
+		name := L.getFileName(path)
 		Sprites[name] = sprite
 		return
 	}
@@ -151,7 +155,7 @@ func LoadComposeSprite(path string) {
 			bounds[j] = float64(StrToInt(List[j]))
 		}
 		sprite := pixel.NewSprite(pic, pixel.R(bounds[0], bounds[1], bounds[2], bounds[3]))
-		name := GetFileName(path)
+		name := L.getFileName(path)
 		SpriteTypes[name] = append(SpriteTypes[name], nameList[0])
 		Sprites[name+"_"+nameList[0]] = sprite
 	}

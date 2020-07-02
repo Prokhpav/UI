@@ -1,7 +1,7 @@
 package run
 
 import (
-	UI "../user_interface"
+	UI "../UIv2"
 	"fmt"
 	"github.com/faiface/pixel"
 	"github.com/faiface/pixel/imdraw"
@@ -16,7 +16,7 @@ const (
 	FPS      = 60
 )
 
-var WinSize = pixel.Vec{X: WinSizeW, Y: WinSizeH}
+var V = pixel.V
 
 func Run() {
 	rand.Seed(time.Now().UnixNano())
@@ -30,53 +30,54 @@ func Run() {
 	}
 	imd := imdraw.New(nil)
 
-	UI.LoadAllSprites("./sprites")
-	UI.LoadAllFonts("./fonts", 36)
+	UI.Load.AllSprites("sprites")
+	UI.Load.AllFonts("fonts", 24)
 
-	UI.DefaultFont = UI.GetFont("Calibri", 36)
+	UI.StdVal = UI.StandardValues{
+		ButtonTouchFunc:    func(button *UI.Button) { fmt.Println(button.Pos) },
+		ButtonTouchButtons: []pixelgl.Button{pixelgl.MouseButtonLeft},
+		ButtonSpriteTypes:  []string{"button", "button_mini"},
+		TextSpriteFont:     UI.Get.Font("Calibri", 24),
+		TextSpriteText:     "",
+		TextSpriteColor:    pixel.RGBA{A: 1},
+	}
 
-	Scene := UI.Scene{}
-	ButtonSprites := [4]string{"button_default", "button_focused", "button_touched", "button_dragged"}
-	ButtonFunc := func(B *UI.Button) { fmt.Println(B.Text.Text) }
-	Scene.AddButton2(WinSize.Scaled(0.5).Add(pixel.V(0, 105.)), pixel.V(200, 80), ButtonSprites, UI.GetDefaultText("Touch"), ButtonFunc)
-	Scene.AddButton2(WinSize.Scaled(0.5).Add(pixel.V(0, 35.0)), pixel.V(200, 80), ButtonSprites, UI.GetDefaultText("Button"), ButtonFunc)
-	Scene.AddButton2(WinSize.Scaled(0.5).Add(pixel.V(0, -35.)), pixel.V(200, 80), ButtonSprites, UI.GetDefaultText("Shit"), ButtonFunc)
-	Scene.AddButton2(WinSize.Scaled(0.5).Add(pixel.V(0, -105)), pixel.V(200, 80), ButtonSprites, UI.GetDefaultText("('v')"), ButtonFunc)
+	Scene := UI.Get.Scene(WinSizeW, WinSizeH,
+		UI.Get.Basic(pixel.Vec{X: WinSizeW / 2., Y: WinSizeH / 2.}, pixel.Vec{Y: WinSizeH},
+			UI.Get.StdButton(V(0, 100), 0, func(button *UI.Button) { fmt.Println(button.Pos) }, UI.Get.STS("button1")),
+			UI.Get.StdButton(V(0, 30), 1, func(button *UI.Button) { fmt.Println(button.Pos) }, UI.Get.STS("b2")),
+			UI.Get.StdButton(V(0, -40), 0, func(button *UI.Button) { fmt.Println(button.Pos) }, UI.Get.STS("button3")),
+			UI.Get.StdButton(V(0, -110), 0, func(button *UI.Button) { fmt.Println(button.Pos) }, UI.Get.STS("button4")),
+		),
+	)
 
+	var FMP, LMP, MP pixel.Vec
 	T, LT := false, false
+
 	for !win.Closed() {
-		MP, LMP := win.MousePosition(), win.MousePreviousPosition()
+		MP, LMP = win.MousePosition(), win.MousePreviousPosition()
+		if win.JustPressed(pixelgl.MouseButtonLeft) {
+			FMP = MP
+		}
 		T, LT = win.Pressed(pixelgl.MouseButtonLeft), T
 		if MP != LMP {
 			if !T {
-				for _, e := range Scene.UI {
-					e.MouseMoving(LMP, MP)
-				}
+				Scene.MouseMoving(LMP, MP)
 			} else {
-				for _, e := range Scene.UI {
-					e.MouseDragging(LMP, MP, pixelgl.MouseButtonLeft)
-				}
+				Scene.MouseDragging(FMP, LMP, MP, pixelgl.MouseButtonLeft)
 			}
 		}
 		if T != LT {
 			if T {
-				for _, e := range Scene.UI {
-					e.MouseTouching(MP, pixelgl.MouseButtonLeft)
-				}
+				Scene.MouseTouching(MP, pixelgl.MouseButtonLeft)
 			} else {
-				for _, e := range Scene.UI {
-					e.MouseUnTouching(MP, pixelgl.MouseButtonLeft)
-				}
+				Scene.MouseTouchEnding(MP, pixelgl.MouseButtonLeft)
 			}
 		}
 
 		win.Clear(pixel.RGB(0, 0, 0))
 		imd.Draw(win)
-
-		for _, e := range Scene.UI {
-			e.Draw(win)
-		}
-
+		Scene.Draw(win)
 		imd.Clear()
 		win.Update()
 

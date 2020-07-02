@@ -5,12 +5,12 @@ import (
 	"github.com/faiface/pixel/pixelgl"
 )
 
-type Sprite interface {
+type SpriteInterface interface {
 	Draw(t pixel.Target)
 }
 
 type UIInterface interface {
-	Sprite
+	SpriteInterface
 	MouseMoving(LastPos, NewPos pixel.Vec)
 	MouseTouching(Pos pixel.Vec, Button pixelgl.Button)
 	MouseUnTouching(Pos pixel.Vec, Button pixelgl.Button)
