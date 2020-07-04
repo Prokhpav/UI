@@ -6,7 +6,7 @@ import (
 )
 
 type Scene struct {
-	Basic
+	*Basic
 }
 
 func (S *Scene) Draw(t pixel.Target) {
@@ -29,6 +29,6 @@ func (S *Scene) MouseTouchEnding(Pos pixel.Vec, button pixelgl.Button) {
 //
 
 func (G getter) Scene(WinSizeW, WinSizeH float64, children ...basicInterface) *Scene {
-	S := &Scene{Basic: *G.Basic(pixel.Vec{}, pixel.Vec{X: WinSizeW, Y: WinSizeH}, children...)}
+	S := &Scene{Basic: G.Basic(pixel.ZV, pixel.Vec{X: WinSizeW, Y: WinSizeH}, children...)}
 	return S
 }

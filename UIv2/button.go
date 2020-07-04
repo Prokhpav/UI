@@ -6,7 +6,7 @@ import (
 )
 
 type Button struct {
-	Sprite
+	*Sprite
 	touchFunc    func(button *Button)
 	touchButtons []pixelgl.Button
 }
@@ -70,12 +70,58 @@ func (G getter) Button(sprite *Sprite, touchFunc func(button *Button), title *Te
 		touchButtons = StdVal.ButtonTouchButtons
 	}
 	return &Button{
-		Sprite:       *sprite,
+		Sprite:       sprite,
 		touchFunc:    touchFunc,
 		touchButtons: touchButtons,
 	}
 }
 
 func (G getter) StdButton(Pos pixel.Vec, stdSpriteTypeI int, touchFunc func(button *Button), title *TextSprite, children ...basicInterface) *Button {
-	return G.Button(G.StdSprite(Pos, StdVal.ButtonSpriteTypes[stdSpriteTypeI], children...), touchFunc, title, StdVal.ButtonTouchButtons...)
+	return G.Button(G.StdSprite(Pos, StdVal.SpriteSpriteTypes[stdSpriteTypeI], children...), touchFunc, title, StdVal.ButtonTouchButtons...)
+}
+
+//
+
+type ButtonConfig struct {
+	PosType       string
+	Pos           pixel.Vec
+	PosX, PosY    float64
+	Size          pixel.Vec
+	SizeX, SizeY  float64
+	Sprites       []*pixel.Sprite
+	SpriteType    string
+	SpriteNow     int
+	StdSpriteType int
+	TouchFunc     func(button *Button)
+	TouchButtons  []pixelgl.Button
+}
+
+func (G getter) ButtonConf(config ButtonConfig, children ...basicInterface) *Button {
+	if config.TouchFunc == nil {
+		if StdVal.ButtonTouchFunc != nil {
+			config.TouchFunc = StdVal.ButtonTouchFunc
+		} else {
+			config.TouchFunc = func(button *Button) {}
+		}
+	}
+	if config.TouchButtons == nil {
+		config.TouchButtons = StdVal.ButtonTouchButtons
+	}
+	return &Button{
+		Sprite: G.SpriteConf(SpriteConfig{
+			PosType:       config.PosType,
+			Pos:           config.Pos,
+			PosX:          config.PosX,
+			PosY:          config.PosY,
+			Size:          config.Size,
+			SizeX:         config.SizeX,
+			SizeY:         config.SizeY,
+			Sprites:       config.Sprites,
+			SpriteType:    config.SpriteType,
+			StdSpriteType: config.StdSpriteType,
+			SpriteNow:     config.SpriteNow,
+		}, children...),
+		touchFunc:    config.TouchFunc,
+		touchButtons: config.TouchButtons,
+	}
 }

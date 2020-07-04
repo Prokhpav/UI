@@ -16,8 +16,6 @@ const (
 	FPS      = 60
 )
 
-var V = pixel.V
-
 func Run() {
 	rand.Seed(time.Now().UnixNano())
 	TickTimer := time.Tick(time.Second / FPS)
@@ -34,21 +32,25 @@ func Run() {
 	UI.Load.AllFonts("fonts", 24)
 
 	UI.StdVal = UI.StandardValues{
-		ButtonTouchFunc:    func(button *UI.Button) { fmt.Println(button.Pos) },
+		ButtonTouchFunc:    func(button *UI.Button) { fmt.Println(button.GetPos()) },
 		ButtonTouchButtons: []pixelgl.Button{pixelgl.MouseButtonLeft},
-		ButtonSpriteTypes:  []string{"button", "button_mini"},
+		SpriteSpriteTypes:  []string{"button", "button_mini"},
 		TextSpriteFont:     UI.Get.Font("Calibri", 24),
 		TextSpriteText:     "",
 		TextSpriteColor:    pixel.RGBA{A: 1},
 	}
 
 	Scene := UI.Get.Scene(WinSizeW, WinSizeH,
-		UI.Get.Basic(pixel.Vec{X: WinSizeW / 2., Y: WinSizeH / 2.}, pixel.Vec{Y: WinSizeH},
-			UI.Get.StdButton(V(0, 100), 0, func(button *UI.Button) { fmt.Println(button.Pos) }, UI.Get.STS("button1")),
-			UI.Get.StdButton(V(0, 30), 1, func(button *UI.Button) { fmt.Println(button.Pos) }, UI.Get.STS("b2")),
-			UI.Get.StdButton(V(0, -40), 0, func(button *UI.Button) { fmt.Println(button.Pos) }, UI.Get.STS("button3")),
-			UI.Get.StdButton(V(0, -110), 0, func(button *UI.Button) { fmt.Println(button.Pos) }, UI.Get.STS("button4")),
-		),
+		//UI.Get.Basic(pixel.Vec{X: WinSizeW / 2., Y: WinSizeH / 2.}, pixel.Vec{Y: WinSizeH},
+		//	UI.Get.StdButton(V(0, 100), 0, func(button *UI.Button) { fmt.Println(button.GetPos()) }, UI.Get.STS("button1")),
+		//	UI.Get.StdButton(V(0, 30), 1, func(button *UI.Button) { fmt.Println(button.GetPos()) }, UI.Get.STS("b2")),
+		//	UI.Get.StdButton(V(0, -40), 0, func(button *UI.Button) { fmt.Println(button.GetPos()) }, UI.Get.STS("button3")),
+		//	UI.Get.StdButton(V(0, -110), 0, func(button *UI.Button) { fmt.Println(button.GetPos()) }, UI.Get.STS("button4")),
+		//),
+		UI.Get.ButtonConf(UI.ButtonConfig{PosY: 100}),
+		UI.Get.ButtonConf(UI.ButtonConfig{PosY: 30}),
+		UI.Get.ButtonConf(UI.ButtonConfig{PosY: -40}),
+		UI.Get.ButtonConf(UI.ButtonConfig{PosType: "left-up"}),
 	)
 
 	var FMP, LMP, MP pixel.Vec

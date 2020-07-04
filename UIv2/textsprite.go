@@ -23,7 +23,7 @@ func (T *TextSprite) SetText(txt string) {
 	if err != nil {
 		panic(err)
 	}
-	T.rect = T.Sprite.Bounds().Moved(T.Pos)
+	T.rect = T.Sprite.Bounds().Moved(T.pos)
 }
 
 func (T *TextSprite) draw(t pixel.Target, drawPos pixel.Vec) {

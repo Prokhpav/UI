@@ -16,8 +16,9 @@ func StrToInt(str string) int {
 
 type basicInterface interface {
 	GetPos() pixel.Vec
+	GetSize() pixel.Vec
+	SetPos(NewPosOrDelta pixel.Vec, IsDelta ...bool)
 	GetChildren() *SpriteQueue
-	ChangePos(NewPos pixel.Vec)
 
 	MapChildren(f func(child basicInterface))
 	setParent(parent basicInterface, index int)
@@ -26,9 +27,9 @@ type basicInterface interface {
 
 	//_draw(t pixel.Target, drawPos pixel.Vec)
 	//_mouseMoving(LastPos, NewPos pixel.Vec)
-	//_mouseTouching(Pos pixel.Vec, button pixelgl.Button)
+	//_mouseTouching(pos pixel.Vec, button pixelgl.Button)
 	//_mouseDragging(FirstPos, LastPos, NewPos pixel.Vec, button ...pixelgl.Button)
-	//_mouseTouchEnding(Pos pixel.Vec, button pixelgl.Button)
+	//_mouseTouchEnding(pos pixel.Vec, button pixelgl.Button)
 
 	draw(t pixel.Target, drawPos pixel.Vec)
 	mouseMoving(LastPos, NewPos pixel.Vec)
@@ -38,7 +39,9 @@ type basicInterface interface {
 }
 
 type Basic struct {
-	Pos      pixel.Vec
+	pos      pixel.Vec
+	cPos     pixel.Vec
+	posType  int
 	rect     pixel.Rect
 	Children *SpriteQueue
 	index    int
@@ -81,47 +84,63 @@ func mouseTouchEnding(S basicInterface, Pos pixel.Vec, button pixelgl.Button) {
 	}
 }
 
-func (S *Basic) GetPos() pixel.Vec {
-	return S.Pos
+func (B *Basic) GetPos() pixel.Vec {
+	return B.cPos
 }
-func (S *Basic) GetChildren() *SpriteQueue {
-	return S.Children
+func (B *Basic) SetPos(NewPosOrDelta pixel.Vec, IsDelta ...bool) {
+	if IsDelta != nil && IsDelta[0] {
+		B.rect.Min = B.rect.Min.Add(NewPosOrDelta)
+		B.rect.Max = B.rect.Max.Add(NewPosOrDelta)
+		B.cPos = B.cPos.Add(NewPosOrDelta)
+		B.pos = B.pos.Add(NewPosOrDelta)
+	} else {
+		d := NewPosOrDelta.Sub(B.pos)
+		B.rect.Min = B.rect.Min.Add(d)
+		B.rect.Max = B.rect.Max.Add(d)
+		B.cPos = B.cPos.Add(d)
+		B.pos = NewPosOrDelta
+	}
+
 }
-func (S *Basic) ChangePos(NewPos pixel.Vec) {
-	d := NewPos.Sub(S.Pos)
-	S.rect.Min = S.rect.Min.Add(d)
-	S.rect.Max = S.rect.Max.Add(d)
-	S.Pos = NewPos
+func (B *Basic) GetSize() pixel.Vec {
+	return B.rect.Size()
+}
+func (B *Basic) GetChildren() *SpriteQueue {
+	return B.Children
 }
 
-func (S *Basic) MapChildren(f func(child basicInterface)) {
-	for _, child := range S.Children.arr {
+func (B *Basic) MapChildren(f func(child basicInterface)) {
+	for _, child := range B.Children.arr {
 		f(child)
 	}
 }
-func (S *Basic) setParent(parent basicInterface, index int) {
-	S.index = index
-	S.parent = parent
+func (B *Basic) setParent(parent basicInterface, index int) {
+	B.cPos = getPosFromType2(B.posType, B.pos, B.rect.Size(), parent.GetSize())
+	d := B.cPos.Sub(B.pos)
+	B.rect.Min = B.rect.Min.Add(d)
+	B.rect.Max = B.rect.Max.Add(d)
+	B.index = index
+	B.parent = parent
 }
-func (S *Basic) RemoveFromChildren() {
-	if S.parent == nil {
+func (B *Basic) RemoveFromChildren() {
+	if B.parent == nil {
 		panic("Remove from nil parent")
 	}
-	S.parent.GetChildren().Pop(S.index)
-	S.index = -1
-	S.parent = nil
+	B.parent.GetChildren().Pop(B.index)
+	B.index = -1
+	B.parent = nil
 }
-func (S *Basic) AddChild(children ...basicInterface) {
-	i := len(S.Children.arr)
+func (B *Basic) AddChild(children ...basicInterface) {
+	i := len(B.Children.arr)
 	for _, child := range children {
-		child.setParent(S, i)
+		child.setParent(B, i)
 		i++
 	}
-	S.Children.Add(children...)
+	B.Children.Add(children...)
 }
 
 //func (S *Basic) _draw(t pixel.Target, drawPos pixel.Vec) {
-//	drawPos = drawPos.Add(S.Pos)
+//	drawPos = drawPos.Add(S.pos)
 //	S.draw(t, drawPos)
 //	if S.Children.B() {
 //		S.MapChildren(func(child basicInterface) { child._draw(t, drawPos) })
@@ -130,44 +149,44 @@ func (S *Basic) AddChild(children ...basicInterface) {
 //func (S *Basic) _mouseMoving(LastPos, NewPos pixel.Vec) {
 //	S.mouseMoving(LastPos, NewPos)
 //	if S.Children.B() {
-//		LastPos, NewPos = LastPos.Sub(S.Pos), NewPos.Sub(S.Pos)
+//		LastPos, NewPos = LastPos.Sub(S.pos), NewPos.Sub(S.pos)
 //		S.MapChildren(func(child basicInterface) { child._mouseMoving(LastPos, NewPos) })
 //	}
 //}
-//func (S *Basic) _mouseTouching(Pos pixel.Vec, button pixelgl.Button) {
-//	S.mouseTouching(Pos, button)
+//func (S *Basic) _mouseTouching(pos pixel.Vec, button pixelgl.Button) {
+//	S.mouseTouching(pos, button)
 //	if S.Children.B() {
-//		Pos = Pos.Sub(S.Pos)
-//		S.MapChildren(func(child basicInterface) { child._mouseTouching(Pos, button) })
+//		pos = pos.Sub(S.pos)
+//		S.MapChildren(func(child basicInterface) { child._mouseTouching(pos, button) })
 //	}
 //}
 //func (S *Basic) _mouseDragging(FirstPos, LastPos, NewPos pixel.Vec, button ...pixelgl.Button) {
 //	S.mouseDragging(FirstPos, LastPos, NewPos, button...)
 //	if S.Children.B() {
-//		FirstPos, LastPos, NewPos = FirstPos.Sub(S.Pos), LastPos.Sub(S.Pos), NewPos.Sub(S.Pos)
+//		FirstPos, LastPos, NewPos = FirstPos.Sub(S.pos), LastPos.Sub(S.pos), NewPos.Sub(S.pos)
 //		S.MapChildren(func(child basicInterface) { child._mouseDragging(FirstPos, LastPos, NewPos, button...) })
 //	}
 //}
-//func (S *Basic) _mouseTouchEnding(Pos pixel.Vec, button pixelgl.Button) {
-//	S.mouseTouchEnding(Pos, button)
+//func (S *Basic) _mouseTouchEnding(pos pixel.Vec, button pixelgl.Button) {
+//	S.mouseTouchEnding(pos, button)
 //	if S.Children.B() {
-//		Pos = Pos.Sub(S.Pos)
-//		S.MapChildren(func(child basicInterface) { child._mouseTouchEnding(Pos, button) })
+//		pos = pos.Sub(S.pos)
+//		S.MapChildren(func(child basicInterface) { child._mouseTouchEnding(pos, button) })
 //	}
 //}
 //
-func (S *Basic) draw(_ pixel.Target, _ pixel.Vec)                     {}
-func (S *Basic) mouseMoving(_, _ pixel.Vec)                           {}
-func (S *Basic) mouseTouching(_ pixel.Vec, _ pixelgl.Button)          {}
-func (S *Basic) mouseDragging(_, _, _ pixel.Vec, _ ...pixelgl.Button) {}
-func (S *Basic) mouseTouchEnding(_ pixel.Vec, _ pixelgl.Button)       {}
+func (B *Basic) draw(_ pixel.Target, _ pixel.Vec)                     {}
+func (B *Basic) mouseMoving(_, _ pixel.Vec)                           {}
+func (B *Basic) mouseTouching(_ pixel.Vec, _ pixelgl.Button)          {}
+func (B *Basic) mouseDragging(_, _, _ pixel.Vec, _ ...pixelgl.Button) {}
+func (B *Basic) mouseTouchEnding(_ pixel.Vec, _ pixelgl.Button)       {}
 
 //
 
 func (G getter) Basic(Pos, Size pixel.Vec, children ...basicInterface) *Basic {
 	Size = Size.Scaled(0.5)
 	S := &Basic{
-		Pos:      Pos,
+		pos:      Pos,
 		rect:     pixel.Rect{Min: Pos.Sub(Size), Max: Pos.Add(Size)},
 		Children: &SpriteQueue{arr: children},
 	}
@@ -175,4 +194,88 @@ func (G getter) Basic(Pos, Size pixel.Vec, children ...basicInterface) *Basic {
 		child.setParent(S, i)
 	}
 	return S
+}
+
+//func getPosFromType(t string, pos, pSize pixel.Vec) pixel.Vec {
+//	if i := strings.Index(t, "-"); i != -1 {
+//		return getPosFromType(t[i+1:], getPosFromType(t[:i], pos, pSize), pSize)
+//	}
+//	if t == "center" {
+//		return pixel.Vec{X: pos.X - pSize.X/2, Y: pos.Y - pSize.Y/2,}
+//	}
+//	if t == "right" {
+//		return pixel.Vec{X: pos.X + pSize.X/2, Y: pos.Y}
+//	}
+//	if t == "left" {
+//		return pixel.Vec{X: pos.X - pSize.X/2, Y: pos.Y}
+//	}
+//	if t == "up" {
+//		return pixel.Vec{X: pos.X, Y: pos.Y + pSize.Y/2}
+//	}
+//	if t == "down" {
+//		return pixel.Vec{X: pos.X, Y: pos.Y - pSize.Y/2}
+//	}
+//	return pos
+//}
+
+const _gPFTLLen int = 9
+
+var _getPosFromTypeListNames = [_gPFTLLen]string{"center", "left-down", "left", "left-up", "up", "right-up", "right", "right-down", "down"}
+var getPosFromTypeList = [_gPFTLLen][4]float64{
+	{0.5, 0.5, 0, 0},   // center
+	{0, 0, 0.5, 0.5},   // left-down
+	{0, 0.5, 0.5, 0},   // left
+	{0, 1, 0.5, -0.5},  // left-up
+	{0.5, 1, 0, -0.5},  // up
+	{1, 1, -0.5, -0.5}, // right-up
+	{1, 0.5, -0.5, 0},  // right
+	{1, 0, -0.5, -0.5}, // right-down
+	{0.5, 0, 0, 0.5},   // down
+}
+
+func getPosFromType2(t int, pos, size, pSize pixel.Vec) pixel.Vec {
+	l := getPosFromTypeList[t]
+	return pixel.Vec{
+		X: pos.X + pSize.X*l[0] + size.X*l[2],
+		Y: pos.Y + pSize.Y*l[1] + size.Y*l[3],
+	}
+}
+
+type BasicConfig struct {
+	PosType      string
+	Pos          pixel.Vec
+	PosX, PosY   float64
+	Size         pixel.Vec
+	SizeX, SizeY float64
+}
+
+func (G getter) BasicConf(config BasicConfig, children ...basicInterface) *Basic {
+	if config.Pos == pixel.ZV {
+		config.Pos = pixel.Vec{X: config.PosX, Y: config.PosY}
+	}
+	if config.Size == pixel.ZV {
+		config.Size = pixel.Vec{X: config.PosX, Y: config.PosY}
+	}
+	if config.PosType == "" {
+		config.PosType = "center"
+	}
+	PosType := 0
+	for i, TypeName := range _getPosFromTypeListNames {
+		if config.PosType == TypeName {
+			PosType = i
+			break
+		}
+	}
+
+	s := config.Size.Scaled(0.5)
+	B := &Basic{
+		pos:      config.Pos,
+		posType:  PosType,
+		rect:     pixel.Rect{Min: config.Pos.Sub(s), Max: config.Pos.Add(s)},
+		Children: &SpriteQueue{arr: children},
+	}
+	for i, child := range children {
+		child.setParent(B, i)
+	}
+	return B
 }

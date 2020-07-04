@@ -9,7 +9,7 @@ import (
 type StandardValues struct {
 	ButtonTouchFunc    func(button *Button)
 	ButtonTouchButtons []pixelgl.Button
-	ButtonSpriteTypes  []string
+	SpriteSpriteTypes  []string
 
 	TextSpriteFont  *text.Atlas
 	TextSpriteText  string
